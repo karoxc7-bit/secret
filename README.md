@@ -53,9 +53,11 @@ git push -u origin main
 ## ٣) چالاککردنی GitHub Pages
 
 1. لە ڕepۆ: **Settings** → **Pages**.
-2. **Build and deployment** → **Source:** **GitHub Actions** (نەک «Deploy from branch»).
-3. بچۆ **Actions** → workflow **Deploy GitHub Pages** → دوای push ی یەکەم دەبێت **سەوز** بێت.
-4. دوای ١–٣ خولەک URL دەردەکەوێت:
+2. **Build and deployment** → **Source:** **Deploy from a branch**.
+3. **Branch:** `main` · **Folder:** `/ (root)` → **Save**.
+4. دوای ٢–٥ خولەک URL دەردەکەوێت:
+
+> ئەگەر workflowی Actions هەڵەی «Get a Pages site failed» بدات: لە Settings → Pages **GitHub Actions** هەڵنەبژێرە مەگەر بەتەنها Actions deploy بەکاربهێنیت. ئەم پڕۆژەیە بە **branch deploy** کافییە؛ پێویست بە `pages.yml` نییە.
 
 | بەش | URL |
 |-----|-----|
@@ -74,7 +76,7 @@ git push -u origin main
 redirectUrl: "https://www.facebook.com/karoxghafoor"
 ```
 
-گۆڕانکاری → `git add config.js` → `git commit` → `git push` → Actions دووبارە deploy دەکات.
+گۆڕانکاری → `git add config.js` → `git commit` → `git push` → چەند خولەک چاوەڕوان بکە بۆ نوێبوونی Pages.
 
 ---
 
@@ -121,5 +123,4 @@ js/
 css/
 config.js
 supabase/schema.sql
-.github/workflows/pages.yml
 ```
