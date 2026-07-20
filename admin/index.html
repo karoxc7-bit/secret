@@ -18,9 +18,19 @@
           <input id="email" name="email" type="email" required autocomplete="username" />
           <label for="password">وشەی نهێنی</label>
           <input id="password" name="password" type="password" required autocomplete="current-password" />
-          <button type="submit" class="btn-primary">چوونەژوورەوە</button>
+          <button type="submit" class="btn-primary" id="login-submit">چوونەژوورەوە</button>
           <p id="login-error" class="status error"></p>
         </form>
+        <details class="card" style="margin-top: 1rem; font-size: 0.85rem">
+          <summary>چوونەژوورەوە کار ناکات؟</summary>
+          <ol style="margin: 0.75rem 0 0; padding-right: 1.25rem; color: var(--muted)">
+            <li>Supabase → <strong>Authentication → Users</strong> → Add user (Auto Confirm چالاک)</li>
+            <li><strong>Providers → Email</strong> → Enable</li>
+            <li><strong>URL configuration</strong> → Site URL: <code dir="ltr">https://toktik.lol/</code></li>
+            <li>Redirect URLs: <code dir="ltr">https://toktik.lol/admin/</code></li>
+            <li>هەمان ئیمەیڵ/وشەی نهێنی لێرە بنووسە</li>
+          </ol>
+        </details>
       </section>
 
       <section id="dash-view" class="hidden">

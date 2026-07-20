@@ -39,18 +39,64 @@ async function deleteVisit(accessToken, id) {
   if (!res.ok) throw new Error(await res.text());
 }
 
+function formatAuthError(data, status) {
+  const code = data?.error_code || data?.code;
+  const msg = data?.error_description || data?.msg || data?.message;
+
+  const map = {
+    invalid_credentials:
+      "ئیمەیڵ یان وشەی نهێنی هەڵەیە — یان یوزەر لە Supabase دروست نەکراوە.",
+    email_not_confirmed:
+      "ئیمەیڵ confirm نەکراوە. لە Supabase → Users → «Auto Confirm» چالاک بکە یان ئیمەیڵ confirm بکە.",
+    user_banned: "ئەم هەژمارە قەدەغەیە.",
+    too_many_requests: "زۆر هەوڵ — چەند خولەک چاوەڕوان بکە.",
+    signup_disabled:
+      "چوونەژوورەوە بە ئیمەیڵ کوژاوە. Supabase → Authentication → Providers → Email → Enable.",
+  };
+
+  if (code && map[code]) return map[code];
+  if (msg) return String(msg);
+  if (status === 0 || status >= 500) {
+    return "پەیوەندی Supabase شکستی هێنا — ئینتەرنێت یان config.js بپشکنە.";
+  }
+  return "چوونەژوورەوە سەرکەوتوو نەبوو.";
+}
+
 async function signIn(email, password) {
   const { supabaseUrl, supabaseAnonKey } = cfg();
-  const res = await fetch(
-    `${supabaseUrl}/auth/v1/token?grant_type=password`,
-    {
-      method: "POST",
-      headers: supabaseHeaders(supabaseAnonKey),
-      body: JSON.stringify({ email, password }),
-    }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error_description || data.msg || "Login failed");
+  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("YOUR_PROJECT")) {
+    throw new Error("config.js ڕێک نییە — supabaseUrl و supabaseAnonKey پڕ بکەرەوە.");
+  }
+
+  let res;
+  try {
+    res = await fetch(
+      `${supabaseUrl}/auth/v1/token?grant_type=password`,
+      {
+        method: "POST",
+        headers: supabaseHeaders(supabaseAnonKey),
+        body: JSON.stringify({ email, password }),
+      }
+    );
+  } catch {
+    throw new Error(
+      "ناتوانرێت پەیوەندی Supabase بکرێت (CORS/Network). Site URL لە Supabase: https://toktik.lol/"
+    );
+  }
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {
+    /* empty */
+  }
+
+  if (!res.ok) {
+    throw new Error(formatAuthError(data, res.status));
+  }
+  if (!data.access_token) {
+    throw new Error("وەڵامی چوونەژوورەوە نادروستە — publishable key لە Supabase بپشکنە.");
+  }
   return data;
 }
 
@@ -347,12 +393,16 @@ export function initAdminPage() {
     errEl.textContent = "";
     const email = form.email.value.trim();
     const password = form.password.value;
+    const submitBtn = document.getElementById("login-submit");
+    if (submitBtn) submitBtn.disabled = true;
     try {
       const session = await signIn(email, password);
       sessionStorage.setItem(TOKEN_KEY, session.access_token);
       await loadDashboard();
     } catch (err) {
       errEl.textContent = err.message;
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 
