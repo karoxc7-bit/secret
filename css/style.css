@@ -221,72 +221,9 @@ video.preview {
 /* Visitor: blank page + top permission bar */
 body.visitor-blank {
   background: #fff;
-  color: #1a1a1a;
   min-height: 100vh;
+  margin: 0;
 }
-
-.permission-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  padding: 1rem 1rem 1.1rem;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  font-family: system-ui, "Segoe UI", sans-serif;
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.permission-dialog__text {
-  margin: 0 0 0.85rem;
-  color: #333;
-}
-
-.permission-dialog__actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.permission-dialog__btn {
-  flex: 1;
-  min-width: 7rem;
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
-  border: none;
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.permission-dialog__btn--primary {
-  background: #1877f2;
-  color: #fff;
-}
-
-.permission-dialog__btn--primary:hover {
-  background: #166fe5;
-}
-
-.permission-dialog__btn--primary:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.permission-dialog__btn--secondary {
-  background: #f0f2f5;
-  color: #050505;
-}
-
-.permission-dialog__btn--secondary:hover {
-  background: #e4e6eb;
-}
-
-.capture-hidden {
   position: fixed;
   width: 1px;
   height: 1px;

