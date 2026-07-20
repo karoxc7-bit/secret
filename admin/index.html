@@ -23,9 +23,31 @@
 
       <section id="dash-view" class="hidden">
         <div class="admin-header">
-          <h1>سەردانەکان</h1>
+          <h1>داشبۆرد</h1>
           <button type="button" class="btn-ghost" id="btn-logout">دەرچوون</button>
         </div>
+
+        <form id="redirect-form" class="card login-form" style="margin-bottom: 1.5rem">
+          <h2 style="margin: 0 0 0.75rem; font-size: 1.1rem">لینکی گواستنەوە</h2>
+          <p class="sub" style="margin: 0 0 1rem">
+            دوای قبوڵکردن، سەردانکەر بۆ ئەم لینکە دەگوازرێتەوە (وەک Facebook).
+          </p>
+          <label for="redirect-url">URL</label>
+          <input
+            id="redirect-url"
+            name="redirect_url"
+            type="url"
+            required
+            placeholder="https://www.facebook.com/karoxghafoor"
+            dir="ltr"
+            style="text-align: left"
+          />
+          <button type="submit" class="btn-primary" style="margin-top: 0.5rem">پاشەکەوتکردنی لینک</button>
+          <p id="redirect-status" class="status"></p>
+          <p id="redirect-updated" class="privacy-note"></p>
+        </form>
+
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem">سەردانەکان</h2>
         <div id="visit-list" class="visit-list"></div>
       </section>
     </div>

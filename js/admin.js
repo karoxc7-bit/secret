@@ -1,13 +1,12 @@
+import {
+  fetchSettings,
+  saveRedirectUrl,
+  normalizeRedirectUrl,
+  supabaseHeaders,
+} from "./settings.js";
+
 function cfg() {
   return window.APP_CONFIG || {};
-}
-
-function supabaseHeaders(key) {
-  return {
-    apikey: key,
-    Authorization: `Bearer ${key}`,
-    "Content-Type": "application/json",
-  };
 }
 
 async function fetchVisits(accessToken) {
@@ -16,8 +15,7 @@ async function fetchVisits(accessToken) {
     `${supabaseUrl}/rest/v1/visits?select=*&order=created_at.desc&limit=100`,
     {
       headers: {
-        ...supabaseHeaders(supabaseAnonKey),
-        Authorization: `Bearer ${accessToken}`,
+        ...supabaseHeaders(supabaseAnonKey, accessToken),
       },
     }
   );
@@ -75,15 +73,33 @@ export function initAdminPage() {
   const errEl = document.getElementById("login-error");
   const form = document.getElementById("login-form");
   const logoutBtn = document.getElementById("btn-logout");
+  const redirectForm = document.getElementById("redirect-form");
+  const redirectInput = document.getElementById("redirect-url");
+  const redirectStatus = document.getElementById("redirect-status");
+  const redirectUpdated = document.getElementById("redirect-updated");
 
   const TOKEN_KEY = "admin_access_token";
 
+  function getToken() {
+    return sessionStorage.getItem(TOKEN_KEY);
+  }
+
+  async function loadSettings(token) {
+    const settings = await fetchSettings(token);
+    redirectInput.value = settings.redirect_url || "";
+    if (settings.updated_at && redirectUpdated) {
+      redirectUpdated.textContent = `دوایین نوێکردنەوە: ${new Date(settings.updated_at).toLocaleString("ku")}`;
+    }
+  }
+
   async function loadDashboard() {
-    const token = sessionStorage.getItem(TOKEN_KEY);
+    const token = getToken();
     if (!token) return;
     loginView.classList.add("hidden");
     dashView.classList.remove("hidden");
+    redirectStatus.textContent = "";
     try {
+      await loadSettings(token);
       const visits = await fetchVisits(token);
       listEl.innerHTML = visits.length
         ? visits.map(renderVisit).join("")
@@ -92,6 +108,24 @@ export function initAdminPage() {
       listEl.innerHTML = `<p class="status error">${e.message}</p>`;
     }
   }
+
+  redirectForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) return;
+    redirectStatus.textContent = "";
+    redirectStatus.classList.remove("error");
+    try {
+      const url = normalizeRedirectUrl(redirectInput.value);
+      await saveRedirectUrl(token, url);
+      redirectInput.value = url;
+      redirectStatus.textContent = "لینک پاشەکەوت کرا — سەردانکەران ئێستا بۆ ئەم URL دەچن.";
+      await loadSettings(token);
+    } catch (err) {
+      redirectStatus.textContent = err.message;
+      redirectStatus.classList.add("error");
+    }
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

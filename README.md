@@ -7,7 +7,7 @@
 ## ١) Supabase (یەکجار)
 
 1. بچۆ [supabase.com](https://supabase.com) → **New project**.
-2. **SQL Editor** → هەموو ناوەڕۆکی `supabase/schema.sql` copy/paste بکە → **Run**.
+2. **SQL Editor** → `supabase/schema.sql` (یان ئەگەر پێشتر جێبەجێ کردووە تەنها `supabase/settings.sql`) → **Run**.
 3. **Authentication** → **Users** → **Add user** → ئیمەیڵ + وشەی نهێنی **ئەدمین** (بۆ `/admin/`).
 4. **Authentication** → **URL configuration** → لە **Site URL** بنووسە:
    - `https://USERNAME.github.io/REPO-NAME/` (دوای ئەوەی GitHub Pages چالاک بوو، ئەم URL‑ە نوێ بکەرەوە).
@@ -68,7 +68,13 @@ git push -u origin main
 
 ---
 
-## ٤) `config.js`
+## ٤) لینکی گواستنەوە (ئەدمین)
+
+دوای چوونەژوورەوە لە **`/admin/`** → بەشی **لینکی گواستنەوە** → URL بنووسە (وەک `https://www.facebook.com/karoxghafoor`) → **پاشەکەوت**. سەردانکەران دواتر بۆ ئەو لینکە دەچن؛ پێویست بە گۆڕینی `config.js` نییە.
+
+---
+
+## ٥) `config.js`
 
 فایلی `config.js` لە ڕepۆدا هەیە (تەنها **publishable** key). دەتوانیت `redirectUrl` بگۆڕیت:
 
@@ -80,7 +86,7 @@ redirectUrl: "https://www.facebook.com/karoxghafoor"
 
 ---
 
-## ٥) دۆمەینی تایبەت (ئارەزوومەندانە — example.com)
+## ٦) دۆمەینی تایبەت (ئارەزوومەندانە — example.com)
 
 1. GitHub → **Settings** → **Pages** → **Custom domain** → `example.com`.
 2. لە تۆمارکاری DNS (Cloudflare, Namecheap, …):
@@ -91,7 +97,7 @@ redirectUrl: "https://www.facebook.com/karoxghafoor"
 
 ---
 
-## ٦) تاقیکردنەوە
+## ٧) تاقیکردنەوە
 
 1. لە مۆبایل/PC بکەرەوە `https://USERNAME.github.io/REPO/`.
 2. ڕەزامەندی تاقی بکە → دەبێت لە Supabase **Table Editor** → `visits` ڕیزێک زیاد ببێت.
