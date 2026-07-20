@@ -1,36 +1,3 @@
-export function getDeviceInfo() {
-  const nav = navigator;
-  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
-
-  return {
-    userAgent: nav.userAgent,
-    platform: nav.platform,
-    language: nav.language,
-    languages: nav.languages ? [...nav.languages] : [],
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    screen: {
-      width: screen.width,
-      height: screen.height,
-      availWidth: screen.availWidth,
-      availHeight: screen.availHeight,
-      pixelRatio: window.devicePixelRatio,
-    },
-    hardwareConcurrency: nav.hardwareConcurrency ?? null,
-    deviceMemory: nav.deviceMemory ?? null,
-    maxTouchPoints: nav.maxTouchPoints ?? 0,
-    cookieEnabled: nav.cookieEnabled,
-    online: nav.onLine,
-    connection: conn
-      ? {
-          effectiveType: conn.effectiveType,
-          downlink: conn.downlink,
-          rtt: conn.rtt,
-        }
-      : null,
-    vendor: nav.vendor || null,
-  };
-}
-
 export async function fetchPublicIp() {
   const controllers = [
     () => fetch("https://api.ipify.org?format=json").then((r) => r.json()),
@@ -38,15 +5,52 @@ export async function fetchPublicIp() {
       fetch("https://api64.ipify.org?format=json").then((r) => r.json()),
   ];
 
+  let ip = null;
+  let source = null;
+
   for (const tryFetch of controllers) {
     try {
       const data = await tryFetch();
-      if (data && data.ip) return { ip: data.ip, source: "ipify" };
+      if (data?.ip) {
+        ip = data.ip;
+        source = "ipify";
+        break;
+      }
     } catch {
       /* try next */
     }
   }
-  return { ip: null, source: null };
+
+  if (!ip) return { ip: null, source: null, geo: null };
+
+  let geo = null;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4500);
+    const res = await fetch(`https://ipapi.co/${ip}/json/`, {
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    const data = await res.json();
+    if (data && !data.error) {
+      geo = {
+        city: data.city,
+        region: data.region,
+        country: data.country_name,
+        countryCode: data.country_code,
+        postal: data.postal,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        timezone: data.timezone,
+        org: data.org,
+        asn: data.asn,
+      };
+    }
+  } catch {
+    /* optional */
+  }
+
+  return { ip, source, geo };
 }
 
 export function requestLocation() {

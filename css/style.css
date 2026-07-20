@@ -264,6 +264,83 @@ video.preview {
   background: rgba(255, 255, 255, 0.25);
 }
 
+.device-summary {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.device-summary__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.device-summary__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.device-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #2d3a4f;
+  color: #c5d4eb;
+}
+
+.device-badge--mobile {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+.device-badge--tablet {
+  background: #3b2f5c;
+  color: #d8b4fe;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.device-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.device-k {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.device-v {
+  word-break: break-word;
+}
+
+.device-raw {
+  margin-top: 0.65rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.device-raw pre {
+  margin: 0.5rem 0 0;
+  padding: 0.65rem;
+  background: #0f1419;
+  border-radius: 8px;
+  overflow: auto;
+  max-height: 220px;
+  font-size: 0.68rem;
+  direction: ltr;
+  text-align: left;
+}
+
 .login-form label {
   display: block;
   margin-bottom: 0.35rem;

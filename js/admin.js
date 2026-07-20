@@ -53,6 +53,104 @@ async function signIn(email, password) {
   return data;
 }
 
+function escapeHtml(text) {
+  return String(text ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function deviceTypeLabel(type) {
+  const map = { mobile: "مۆبایل", tablet: "تابلێت", desktop: "کۆمپیوتەر" };
+  return map[type] || type || "—";
+}
+
+function renderDeviceSummary(di) {
+  const s = di.summary || {};
+  const disp = di.display || {};
+  const hw = di.hardware || {};
+  const loc = di.locale || {};
+  const conn = di.connectivity || {};
+  const geo = di.network?.ipGeo;
+  const gpu = hw.gpu;
+  const screen = disp.screen || di.screen || {};
+  const res =
+    screen.width && screen.height
+      ? `${screen.width}×${screen.height}${disp.pixelRatio ? ` @${disp.pixelRatio}x` : ""}`
+      : "—";
+
+  const rows = [
+    ["جۆر", deviceTypeLabel(s.deviceType)],
+    ["سیستەم", [s.os, s.osVersion].filter(Boolean).join(" ") || "—"],
+    ["مۆدێل", s.model || "—"],
+    ["براوزەر", [s.browser, s.browserVersion].filter(Boolean).join(" ") || "—"],
+    ["شاشە", res],
+    ["کاتژمێر", loc.timezone || di.timezone || "—"],
+    ["زمان", loc.language || di.language || "—"],
+    [
+      "CPU",
+      hw.cpuCores != null
+        ? `${hw.cpuCores} cores`
+        : di.hardwareConcurrency ?? "—",
+    ],
+    [
+      "RAM",
+      hw.deviceMemoryGb != null
+        ? `~${hw.deviceMemoryGb} GB`
+        : di.deviceMemory != null
+          ? `~${di.deviceMemory} GB`
+          : "—",
+    ],
+    [
+      "تۆڕ",
+      conn.effectiveType ||
+        di.connection?.effectiveType ||
+        (conn.online === false ? "offline" : "—"),
+    ],
+    ["GPU", gpu?.renderer || "—"],
+  ];
+
+  if (geo) {
+    rows.push([
+      "IP Geo",
+      [geo.city, geo.region, geo.country].filter(Boolean).join(", ") || "—",
+    ]);
+    if (geo.org) rows.push(["ISP", geo.org]);
+  }
+
+  if (di.battery?.level != null) {
+    rows.push([
+      "باتری",
+      `${di.battery.level}%${di.battery.charging ? " (شارژ)" : ""}`,
+    ]);
+  }
+
+  const grid = rows
+    .map(
+      ([k, v]) =>
+        `<div class="device-kv"><span class="device-k">${escapeHtml(k)}</span><span class="device-v">${escapeHtml(v)}</span></div>`
+    )
+    .join("");
+
+  const badge = s.deviceType
+    ? `<span class="device-badge device-badge--${escapeHtml(s.deviceType)}">${escapeHtml(deviceTypeLabel(s.deviceType))}</span>`
+    : "";
+
+  const json = escapeHtml(JSON.stringify(di, null, 2));
+
+  return `
+    <div class="device-summary">
+      <div class="device-summary__head">${badge}<span class="device-summary__title">${escapeHtml(s.label || s.browser || "ئامێر")}</span></div>
+      <div class="device-grid">${grid}</div>
+      <details class="device-raw">
+        <summary>زانیاری تەواو (JSON)</summary>
+        <pre>${json}</pre>
+      </details>
+    </div>
+  `;
+}
+
 function renderVisit(v) {
   const di = v.device_info || {};
   const loc = v.location;
@@ -71,13 +169,12 @@ function renderVisit(v) {
   return `
     <article class="visit-item" data-visit-id="${v.id}">
       <time>${new Date(v.created_at).toLocaleString("ku")}</time>
-      <div class="meta"><strong>IP:</strong> ${v.ip || "—"}</div>
+      <div class="meta"><strong>IP:</strong> ${escapeHtml(v.ip || "—")}</div>
       <div class="meta"><strong>کامێرا:</strong> ${v.camera_granted ? "بەڵێ" : "نەخێر"} ·
         <strong>لۆکەیشن:</strong> ${v.location_granted ? "بەڵێ" : "نەخێر"}
         ${mapLink ? ` · <a href="${mapLink}" target="_blank" rel="noopener">سەر نەخشە</a>` : ""}
       </div>
-      <div class="meta"><strong>Platform:</strong> ${di.platform || "—"}</div>
-      <div class="meta"><strong>UA:</strong> ${di.userAgent || "—"}</div>
+      ${renderDeviceSummary(di)}
       ${photo}
       <div class="visit-item__actions">
         <button type="button" class="btn-danger" data-action="delete-visit">سڕینەوە</button>

