@@ -53,3 +53,17 @@ export function isAutomatedBrowser() {
 export function shouldSkipVisitorFlow() {
   return isLinkPreviewBot() || isAutomatedBrowser();
 }
+
+/** Classify stored visit (DB flag + heuristics for older rows) */
+export function visitLooksLikeBot(visit) {
+  if (!visit) return false;
+  if (visit.is_bot === true) return true;
+  if (visit.is_bot === false) return false;
+
+  const di = visit.device_info || {};
+  if (di.visitKind === "bot") return true;
+  if (di.flags?.webdriver) return true;
+
+  const ua = di.userAgent || "";
+  return isLinkPreviewBot(ua) || /HeadlessChrome|PhantomJS/i.test(ua);
+}

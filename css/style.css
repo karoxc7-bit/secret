@@ -296,6 +296,30 @@ video.preview {
   color: #93c5fd;
 }
 
+.device-badge--bot {
+  background: #4a2030;
+  color: #fca5a5;
+  margin-right: 0.35rem;
+}
+
+.visit-item--bot {
+  opacity: 0.85;
+  border-color: #5c3d48;
+}
+
+.filter-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.filter-check input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .device-badge--tablet {
   background: #3b2f5c;
   color: #d8b4fe;

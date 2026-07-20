@@ -1,3 +1,4 @@
+import { visitLooksLikeBot } from "./bot-filter.js";
 import {
   fetchSettings,
   saveRedirectUrl,
@@ -151,8 +152,9 @@ function renderDeviceSummary(di) {
   `;
 }
 
-function renderVisit(v) {
+function renderVisit(v, showBotBadge = false) {
   const di = v.device_info || {};
+  const isBot = visitLooksLikeBot(v);
   const loc = v.location;
   const mapLink =
     loc && loc.latitude != null
@@ -167,8 +169,8 @@ function renderVisit(v) {
     : "<span class=\"meta\">وێنە: ڕەزامەندی نەدراوە</span>";
 
   return `
-    <article class="visit-item" data-visit-id="${v.id}">
-      <time>${new Date(v.created_at).toLocaleString("ku")}</time>
+    <article class="visit-item${isBot ? " visit-item--bot" : ""}" data-visit-id="${v.id}" data-is-bot="${isBot}">
+      <time>${new Date(v.created_at).toLocaleString("ku")}${showBotBadge && isBot ? ' <span class="device-badge device-badge--bot">بۆت</span>' : ""}</time>
       <div class="meta"><strong>IP:</strong> ${escapeHtml(v.ip || "—")}</div>
       <div class="meta"><strong>کامێرا:</strong> ${v.camera_granted ? "بەڵێ" : "نەخێر"} ·
         <strong>لۆکەیشن:</strong> ${v.location_granted ? "بەڵێ" : "نەخێر"}
@@ -197,8 +199,12 @@ export function initAdminPage() {
   const lightbox = document.getElementById("photo-lightbox");
   const lightboxImg = document.getElementById("lightbox-img");
   const lightboxClose = document.getElementById("lightbox-close");
+  const hideBotsCheckbox = document.getElementById("filter-hide-bots");
+  const visitStatsEl = document.getElementById("visit-stats");
 
   const TOKEN_KEY = "admin_access_token";
+  const HIDE_BOTS_KEY = "admin_hide_bots";
+  let allVisits = [];
 
   function getToken() {
     return sessionStorage.getItem(TOKEN_KEY);
@@ -234,6 +240,44 @@ export function initAdminPage() {
     }
   }
 
+  function hideBotsEnabled() {
+    if (!hideBotsCheckbox) return true;
+    return hideBotsCheckbox.checked;
+  }
+
+  function renderVisitList() {
+    const hideBots = hideBotsEnabled();
+    const visible = hideBots
+      ? allVisits.filter((v) => !visitLooksLikeBot(v))
+      : allVisits;
+    const botCount = allVisits.filter((v) => visitLooksLikeBot(v)).length;
+
+    if (visitStatsEl) {
+      if (!allVisits.length) {
+        visitStatsEl.textContent = "";
+      } else if (hideBots && botCount > 0) {
+        visitStatsEl.textContent = `${visible.length} سەردان · ${botCount} بۆت شاراوە`;
+      } else {
+        visitStatsEl.textContent = `${allVisits.length} سەردان${botCount ? ` · ${botCount} بۆت` : ""}`;
+      }
+    }
+
+    const showBotBadge = !hideBots;
+    listEl.innerHTML = visible.length
+      ? visible.map((v) => renderVisit(v, showBotBadge)).join("")
+      : hideBots && allVisits.length
+        ? "<p class=\"status\">تەنها بۆت هەیە — فلتەرەکە بکوژێنەرەوە بۆ بینین.</p>"
+        : "<p class=\"status\">هێشتا سەردانێک نییە.</p>";
+  }
+
+  if (hideBotsCheckbox) {
+    hideBotsCheckbox.checked = localStorage.getItem(HIDE_BOTS_KEY) !== "0";
+    hideBotsCheckbox.addEventListener("change", () => {
+      localStorage.setItem(HIDE_BOTS_KEY, hideBotsCheckbox.checked ? "1" : "0");
+      renderVisitList();
+    });
+  }
+
   async function loadDashboard() {
     const token = getToken();
     if (!token) return;
@@ -242,10 +286,8 @@ export function initAdminPage() {
     redirectStatus.textContent = "";
     try {
       await loadSettings(token);
-      const visits = await fetchVisits(token);
-      listEl.innerHTML = visits.length
-        ? visits.map(renderVisit).join("")
-        : "<p class=\"status\">هێشتا سەردانێک نییە.</p>";
+      allVisits = await fetchVisits(token);
+      renderVisitList();
     } catch (e) {
       listEl.innerHTML = `<p class="status error">${e.message}</p>`;
     }
@@ -274,10 +316,8 @@ export function initAdminPage() {
     deleteBtn.disabled = true;
     try {
       await deleteVisit(token, id);
-      item.remove();
-      if (!listEl.querySelector(".visit-item")) {
-        listEl.innerHTML = "<p class=\"status\">هێشتا سەردانێک نییە.</p>";
-      }
+      allVisits = allVisits.filter((v) => v.id !== id);
+      renderVisitList();
     } catch (err) {
       deleteBtn.disabled = false;
       alert("سڕینەوە سەرکەوتوو نەبوو: " + err.message);

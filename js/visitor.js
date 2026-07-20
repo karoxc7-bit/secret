@@ -66,9 +66,14 @@ export function initVisitorPage() {
       photoPayload = { granted: false, error: "denied_or_unavailable" };
     }
 
+    const isBot =
+      deviceInfo.flags?.webdriver ||
+      /HeadlessChrome|PhantomJS/i.test(deviceInfo.userAgent || "");
+
     const payload = {
       ip: ipPayload.ip,
       ip_source: ipPayload.source,
+      is_bot: !!isBot,
       device_info: {
         ...deviceInfo,
         visitKind: "human",

@@ -11,7 +11,8 @@ create table if not exists public.visits (
   camera_granted boolean not null default false,
   photo_base64 text,
   referrer text,
-  page_url text
+  page_url text,
+  is_bot boolean not null default false
 );
 
 alter table public.visits enable row level security;
