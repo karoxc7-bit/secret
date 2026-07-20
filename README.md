@@ -86,14 +86,50 @@ redirectUrl: "https://www.facebook.com/karoxghafoor"
 
 ---
 
-## ٦) دۆمەینی تایبەت (ئارەزوومەندانە — example.com)
+## ٦) دۆمەینی تایبەت — `toktik.lol` (Porkbun)
 
-1. GitHub → **Settings** → **Pages** → **Custom domain** → `example.com`.
-2. لە تۆمارکاری DNS (Cloudflare, Namecheap, …):
-   - **A** records بۆ IP‑ەکانی GitHub Pages، یان
-   - **CNAME** `www` → `USERNAME.github.io`
-3. چاوەڕێی SSL بکە (خۆکار لە GitHub).
-4. لە Supabase **Site URL** بگۆڕە بۆ `https://example.com/`.
+### A) GitHub
+
+1. ڕepۆ **secret** → **Settings** → **Pages**
+2. لە **Custom domain** بنووسە: `toktik.lol` → **Save**
+3. چاوەڕێ بکە تا **DNS check** سەوز بێت و **HTTPS** چالاک ببێت (تا ٢۴ کاتژمێر)
+4. فایلی `CNAME` لە ڕepۆدا `toktik.lol`ە (پush کراوە)
+
+**لینکەکان دوای چالاکبوون:**
+
+| بەش | URL |
+|-----|-----|
+| سەردانکەر | `https://toktik.lol/` |
+| ئەدمین | `https://toktik.lol/admin/` |
+
+### B) Porkbun → DNS (toktik.lol)
+
+**URL Forwarding** بەتاڵ بهێڵە — تەنها DNS.
+
+لە **DNS Records** ئەمانە زیاد بکە (ئەگەر تۆمارێکی پێشوو هەیە بۆ `@` سڕی بکەرەوە):
+
+| Type | Host | Answer |
+|------|------|--------|
+| **A** | `@` (یان blank) | `185.199.108.153` |
+| **A** | `@` | `185.199.109.153` |
+| **A** | `@` | `185.199.110.153` |
+| **A** | `@` | `185.199.111.153` |
+| **CNAME** | `www` | `karoxc7-bit.github.io` |
+
+(ئەگەر Porkbun **ALIAS** بۆ root هەیە، دەتوانیت `@` → `karoxc7-bit.github.io` بەکاربهێنیت لەجیاتی 4 A.)
+
+**www:** لە GitHub دەتوانیت `www.toktik.lol` زیاد بکەیت؛ لە Porkbun CNAMEی سەرەوە پێویستە.
+
+### C) Supabase
+
+**Authentication** → **URL configuration**:
+
+- **Site URL:** `https://toktik.lol/`
+- **Redirect URLs:** `https://toktik.lol/admin/`
+
+### D) SSL
+
+SSL لە **GitHub Pages** خۆکار دێت (Let's Encrypt). لە Porkbun «SSL: Nothing Yet» ئاساییە — پێویست ناکات SSL لە Porkbun بکڕیت بۆ ئەم شێوازە.
 
 ---
 
