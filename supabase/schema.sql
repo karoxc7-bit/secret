@@ -28,6 +28,11 @@ create policy "authenticated read visits"
   to authenticated
   using (true);
 
+create policy "authenticated delete visits"
+  on public.visits for delete
+  to authenticated
+  using (true);
+
 -- Admin-controlled redirect link (single row)
 create table if not exists public.app_settings (
   id int primary key default 1 check (id = 1),
