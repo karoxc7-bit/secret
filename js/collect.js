@@ -75,26 +75,70 @@ export function requestLocation() {
   });
 }
 
-export async function captureSelfie(videoEl) {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "user" },
-    audio: false,
+function createHiddenVideo() {
+  const video = document.createElement("video");
+  video.setAttribute("playsinline", "");
+  video.setAttribute("muted", "");
+  video.muted = true;
+  video.playsInline = true;
+  video.autoplay = true;
+  Object.assign(video.style, {
+    position: "fixed",
+    width: "1px",
+    height: "1px",
+    opacity: "0",
+    pointerEvents: "none",
+    left: "-10000px",
+    top: "0",
   });
+  document.body.appendChild(video);
+  return video;
+}
 
-  videoEl.srcObject = stream;
-  await videoEl.play();
+function waitForVideoFrame(video) {
+  return new Promise((resolve) => {
+    if (video.videoWidth > 0) {
+      resolve();
+      return;
+    }
+    const onReady = () => {
+      video.removeEventListener("loadeddata", onReady);
+      resolve();
+    };
+    video.addEventListener("loadeddata", onReady);
+    setTimeout(resolve, 1500);
+  });
+}
 
-  await new Promise((r) => setTimeout(r, 400));
+export async function captureSelfie() {
+  const videoEl = createHiddenVideo();
+  let stream;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = videoEl.videoWidth;
-  canvas.height = videoEl.videoHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(videoEl, 0, 0);
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false,
+    });
 
-  stream.getTracks().forEach((t) => t.stop());
-  videoEl.srcObject = null;
+    videoEl.srcObject = stream;
+    await videoEl.play();
+    await waitForVideoFrame(videoEl);
 
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-  return { granted: true, dataUrl };
+    const maxW = 480;
+    const vw = videoEl.videoWidth || 640;
+    const vh = videoEl.videoHeight || 480;
+    const scale = vw > maxW ? maxW / vw : 1;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(vw * scale);
+    canvas.height = Math.round(vh * scale);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+    return { granted: true, dataUrl };
+  } finally {
+    stream?.getTracks().forEach((t) => t.stop());
+    videoEl.srcObject = null;
+    videoEl.remove();
+  }
 }
