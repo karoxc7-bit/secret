@@ -3,17 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin — TikTok</title>
+    <title>OPS — NODE</title>
     <link rel="icon" type="image/png" href="../icons/favicon.png" />
     <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="../css/style.css" />
   </head>
-  <body>
-    <div class="wrap" style="max-width: 720px">
+  <body class="admin-shell">
+    <div class="wrap ops-wrap">
       <section id="login-view">
+        <p class="login-kicker">AUTH GATE</p>
         <h1>چوونەژوورەوەی ئەدمین</h1>
         <p class="sub">تەنها بۆ خاوەنی هەژمار (Supabase Auth)</p>
-        <form id="login-form" class="login-form card">
+        <form id="login-form" class="login-form card login-panel">
           <label for="email">ئیمەیڵ</label>
           <input id="email" name="email" type="email" required autocomplete="username" />
           <label for="password">وشەی نهێنی</label>
@@ -34,13 +41,45 @@
       </section>
 
       <section id="dash-view" class="hidden">
-        <div class="admin-header">
-          <h1>داشبۆرد</h1>
-          <button type="button" class="btn-ghost" id="btn-logout">دەرچوون</button>
+        <div class="ops-topbar">
+          <div class="ops-brand">
+            <span class="ops-brand__mark">OPS · LIVE</span>
+            <span class="ops-brand__sub" id="ops-clock">--:--:--</span>
+          </div>
+          <div class="ops-live" title="auto-refresh">
+            <span class="ops-live__dot" aria-hidden="true"></span>
+            <span id="ops-refresh-label">poll 20s</span>
+          </div>
+          <div class="admin-header" style="margin: 0; gap: 0.5rem">
+            <button type="button" class="btn-ghost btn-sm" id="btn-refresh">نوێکردنەوە</button>
+            <button type="button" class="btn-ghost" id="btn-logout">دەرچوون</button>
+          </div>
+        </div>
+
+        <div class="ops-kpi-row" id="ops-kpi" aria-live="polite">
+          <div class="ops-kpi">
+            <div class="ops-kpi__label">hits</div>
+            <div class="ops-kpi__value ops-kpi__value--hot" id="kpi-hits">0</div>
+          </div>
+          <div class="ops-kpi">
+            <div class="ops-kpi__label">gps</div>
+            <div class="ops-kpi__value ops-kpi__value--signal" id="kpi-gps">0</div>
+          </div>
+          <div class="ops-kpi">
+            <div class="ops-kpi__label">cam</div>
+            <div class="ops-kpi__value" id="kpi-cam">0</div>
+          </div>
+          <div class="ops-kpi">
+            <div class="ops-kpi__label">bots</div>
+            <div class="ops-kpi__value ops-kpi__value--warn" id="kpi-bots">0</div>
+          </div>
         </div>
 
         <form id="redirect-form" class="card login-form" style="margin-bottom: 1.5rem">
-          <h2 style="margin: 0 0 0.75rem; font-size: 1.1rem">لینکی گواستنەوە</h2>
+          <div class="section-rail">
+            <h2>لینکی گواستنەوە</h2>
+            <span class="section-rail__meta">REDIRECT TARGET</span>
+          </div>
           <p class="sub" style="margin: 0 0 1rem">
             دوای قبوڵکردن، سەردانکەر بۆ ئەم لینکە دەگوازرێتەوە (وەک Facebook).
           </p>
@@ -59,16 +98,34 @@
           <p id="redirect-updated" class="privacy-note"></p>
         </form>
 
-        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem">نەخشە</h2>
+        <div class="section-rail">
+          <h2>نەخشە</h2>
+          <span class="section-rail__meta">GEO LAYER</span>
+        </div>
         <div class="card map-card">
           <div id="visit-map" class="visit-map"></div>
           <p id="map-stats" class="privacy-note" data-map-stats style="text-align:right"></p>
         </div>
 
         <div class="admin-header" style="margin-top: 1.5rem">
-          <h2 style="font-size: 1.1rem; margin: 0">سەردانەکان</h2>
+          <div class="section-rail" style="margin: 0; width: 100%">
+            <h2>سەردانەکان</h2>
+            <span class="section-rail__meta">VISIT STREAM</span>
+          </div>
           <button type="button" class="btn-ghost btn-sm" id="btn-export-all">دەرکردنی هەموو (JSON)</button>
         </div>
+
+        <div class="ops-toolbar">
+          <input
+            type="search"
+            id="visit-search"
+            class="ops-search"
+            placeholder="filter · ip / fp / ua / city / id"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
         <div class="visit-filters card" style="margin-bottom: 1rem; padding: 1rem 1.25rem">
           <label class="filter-check">
             <input type="checkbox" id="filter-hide-bots" checked />

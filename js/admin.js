@@ -257,9 +257,43 @@ function renderLocation(v) {
 }
 
 
+function isFreshVisit(v, withinMs = 15 * 60 * 1000) {
+  const t = Date.parse(v.created_at);
+  if (!Number.isFinite(t)) return false;
+  return Date.now() - t < withinMs;
+}
+
+function visitSearchBlob(v) {
+  const di = v.device_info || {};
+  const s = di.summary || {};
+  const geo = di.network?.ipGeo || v.ip_geo || {};
+  const loc = v.location || {};
+  return [
+    v.id,
+    v.ip,
+    v.fingerprint,
+    v.ip_source,
+    s.label,
+    s.os,
+    s.browser,
+    s.model,
+    geo.city,
+    geo.region,
+    geo.country,
+    geo.org,
+    loc.latitude,
+    loc.longitude,
+    JSON.stringify(di),
+  ]
+    .filter((x) => x != null && x !== "")
+    .join(" ")
+    .toLowerCase();
+}
+
 function renderVisit(v, showBotBadge = false) {
   const di = v.device_info || {};
   const isBot = visitLooksLikeBot(v);
+  const fresh = isFreshVisit(v);
 
   const hasPhoto = v.photo_base64 && v.camera_granted;
   const photo = hasPhoto
@@ -272,9 +306,12 @@ function renderVisit(v, showBotBadge = false) {
     ? `<div class="meta"><strong>FP:</strong> <code dir="ltr">${escapeHtml(v.fingerprint)}</code></div>`
     : "";
 
+  const shortId = v.id ? String(v.id).slice(0, 8) : "—";
+
   return `
-    <article class="visit-item${isBot ? " visit-item--bot" : ""}" data-visit-id="${v.id}" data-is-bot="${isBot}">
-      <time>${new Date(v.created_at).toLocaleString("ku")}${showBotBadge && isBot ? ' <span class="device-badge device-badge--bot">بۆت</span>' : ""}</time>
+    <article class="visit-item${isBot ? " visit-item--bot" : ""}${fresh ? " visit-item--fresh" : ""}" data-visit-id="${v.id}" data-is-bot="${isBot}">
+      <time>${new Date(v.created_at).toLocaleString("ku")}${showBotBadge && isBot ? ' <span class="device-badge device-badge--bot">بۆت</span>' : ""}${fresh ? ' <span class="device-badge" style="background:#0b3a3a;color:#5eead4">LIVE</span>' : ""}</time>
+      <div class="visit-item__id">${escapeHtml(shortId)}</div>
       <div class="meta"><strong>IP:</strong> ${escapeHtml(v.ip || "—")}${v.ip_source ? ` <span class="meta-dim">(${escapeHtml(v.ip_source)})</span>` : ""}</div>
       <div class="meta"><strong>کامێرا:</strong> ${v.camera_granted ? "بەڵێ" : "نەخێر"}</div>
       ${renderLocation(v)}
@@ -310,14 +347,70 @@ export function initAdminPage() {
   const mapEl = document.getElementById("visit-map");
   const mapStatsEl = document.getElementById("map-stats");
   const exportAllBtn = document.getElementById("btn-export-all");
-
+  const refreshBtn = document.getElementById("btn-refresh");
+  const searchInput = document.getElementById("visit-search");
+  const opsClock = document.getElementById("ops-clock");
+  const opsRefreshLabel = document.getElementById("ops-refresh-label");
+  const kpiHits = document.getElementById("kpi-hits");
+  const kpiGps = document.getElementById("kpi-gps");
+  const kpiCam = document.getElementById("kpi-cam");
+  const kpiBots = document.getElementById("kpi-bots");
 
   const TOKEN_KEY = "admin_access_token";
   const HIDE_BOTS_KEY = "admin_hide_bots";
+  const POLL_MS = 20000;
   let allVisits = [];
+  let pollTimer = null;
+  let searchQuery = "";
 
   function getToken() {
     return sessionStorage.getItem(TOKEN_KEY);
+  }
+
+  function tickClock() {
+    if (!opsClock) return;
+    opsClock.textContent = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z";
+  }
+
+  function updateKpis(pool) {
+    const bots = pool.filter((v) => visitLooksLikeBot(v)).length;
+    const gps = pool.filter((v) => v.location?.source === "gps" || (v.location_granted && v.location)).length;
+    const cam = pool.filter((v) => v.camera_granted).length;
+    if (kpiHits) kpiHits.textContent = String(pool.length);
+    if (kpiGps) kpiGps.textContent = String(gps);
+    if (kpiCam) kpiCam.textContent = String(cam);
+    if (kpiBots) kpiBots.textContent = String(bots);
+  }
+
+  function filteredVisits() {
+    const hideBots = hideBotsEnabled();
+    let pool = hideBots
+      ? allVisits.filter((v) => !visitLooksLikeBot(v))
+      : allVisits;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      pool = pool.filter((v) => visitSearchBlob(v).includes(q));
+    }
+    return pool;
+  }
+
+  function stopPoll() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function startPoll() {
+    stopPoll();
+    pollTimer = setInterval(() => {
+      if (!getToken()) {
+        stopPoll();
+        return;
+      }
+      if (document.hidden) return;
+      loadVisitsQuiet();
+    }, POLL_MS);
   }
 
   function openLightbox(src) {
@@ -357,14 +450,15 @@ export function initAdminPage() {
 
   function renderVisitList() {
     const hideBots = hideBotsEnabled();
-    const visible = hideBots
-      ? allVisits.filter((v) => !visitLooksLikeBot(v))
-      : allVisits;
+    const visible = filteredVisits();
     const botCount = allVisits.filter((v) => visitLooksLikeBot(v)).length;
+    updateKpis(allVisits);
 
     if (visitStatsEl) {
       if (!allVisits.length) {
         visitStatsEl.textContent = "";
+      } else if (searchQuery.trim()) {
+        visitStatsEl.textContent = `${visible.length} ئەنجام · ${allVisits.length} کۆی گشتی`;
       } else if (hideBots && botCount > 0) {
         visitStatsEl.textContent = `${visible.length} سەردان · ${botCount} بۆت شاراوە`;
       } else {
@@ -375,14 +469,30 @@ export function initAdminPage() {
     const showBotBadge = !hideBots;
     listEl.innerHTML = visible.length
       ? visible.map((v) => renderVisit(v, showBotBadge)).join("")
-      : hideBots && allVisits.length
-        ? "<p class=\"status\">تەنها بۆت هەیە — فلتەرەکە بکوژێنەرەوە بۆ بینین.</p>"
-        : "<p class=\"status\">هێشتا سەردانێک نییە.</p>";
+      : searchQuery.trim()
+        ? "<p class=\"status\">هیچ ئەنجامێک بۆ ئەم فلتەرە نییە.</p>"
+        : hideBots && allVisits.length
+          ? "<p class=\"status\">تەنها بۆت هەیە — فلتەرەکە بکوژێنەرەوە بۆ بینین.</p>"
+          : "<p class=\"status\">هێشتا سەردانێک نییە.</p>";
 
     if (mapEl) {
       mountVisitMap(mapEl, visible).catch(() => {
         if (mapStatsEl) mapStatsEl.textContent = "نەخشە بار نەبوو — ئینتەرنێت بپشکنە.";
       });
+    }
+  }
+
+  async function loadVisitsQuiet() {
+    const token = getToken();
+    if (!token) return;
+    try {
+      allVisits = await fetchVisits(token);
+      renderVisitList();
+      if (opsRefreshLabel) {
+        opsRefreshLabel.textContent = `poll ${POLL_MS / 1000}s · ok`;
+      }
+    } catch {
+      if (opsRefreshLabel) opsRefreshLabel.textContent = "poll fail";
     }
   }
 
@@ -400,14 +510,29 @@ export function initAdminPage() {
     loginView.classList.add("hidden");
     dashView.classList.remove("hidden");
     redirectStatus.textContent = "";
+    tickClock();
     try {
       await loadSettings(token);
       allVisits = await fetchVisits(token);
       renderVisitList();
+      startPoll();
+      if (opsRefreshLabel) opsRefreshLabel.textContent = `poll ${POLL_MS / 1000}s`;
     } catch (e) {
       listEl.innerHTML = `<p class="status error">${e.message}</p>`;
     }
   }
+
+  searchInput?.addEventListener("input", () => {
+    searchQuery = searchInput.value || "";
+    renderVisitList();
+  });
+
+  refreshBtn?.addEventListener("click", () => {
+    loadVisitsQuiet();
+  });
+
+  setInterval(tickClock, 1000);
+  tickClock();
 
   listEl.addEventListener("click", async (e) => {
     const token = getToken();
@@ -452,10 +577,7 @@ export function initAdminPage() {
   });
 
   exportAllBtn?.addEventListener("click", () => {
-    const hideBots = hideBotsEnabled();
-    const visible = hideBots
-      ? allVisits.filter((v) => !visitLooksLikeBot(v))
-      : allVisits;
+    const visible = filteredVisits();
     if (!visible.length) return;
     exportArchive(visible);
   });
@@ -497,6 +619,7 @@ export function initAdminPage() {
   });
 
   logoutBtn.addEventListener("click", () => {
+    stopPoll();
     sessionStorage.removeItem(TOKEN_KEY);
     dashView.classList.add("hidden");
     loginView.classList.remove("hidden");
