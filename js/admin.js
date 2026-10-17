@@ -198,6 +198,34 @@ function renderDeviceSummary(di) {
     }
   }
 
+  const traffic = di.traffic || {};
+  const cur = traffic.current || {};
+  const first = traffic.first_touch || {};
+  if (cur.utm_source || cur.gclid || cur.fbclid || cur.referrer_host) {
+    rows.push([
+      "UTM",
+      [cur.utm_source, cur.utm_medium, cur.utm_campaign].filter(Boolean).join(" / ") ||
+        cur.ref ||
+        "—",
+    ]);
+    if (cur.referrer_host) rows.push(["Referrer", cur.referrer_host]);
+    if (cur.gclid || cur.fbclid || cur.ttclid) {
+      rows.push([
+        "Click ID",
+        cur.gclid || cur.fbclid || cur.ttclid || cur.msclkid || "—",
+      ]);
+    }
+  }
+  if (first.at && traffic.returning) {
+    rows.push(["First touch", first.utm_source || first.referrer_host || first.at]);
+  }
+  if (di.honeypot?.hit) {
+    rows.push(["Honeypot", di.honeypot.reason || "hit"]);
+  }
+  if (fpCh.audio && fpCh.audio !== "0") {
+    rows.push(["Audio FP", fpCh.audio]);
+  }
+
   const grid = rows
     .map(
       ([k, v]) =>
@@ -268,6 +296,7 @@ function visitSearchBlob(v) {
   const s = di.summary || {};
   const geo = di.network?.ipGeo || v.ip_geo || {};
   const loc = v.location || {};
+  const tr = di.traffic?.current || {};
   return [
     v.id,
     v.ip,
@@ -283,6 +312,11 @@ function visitSearchBlob(v) {
     geo.org,
     loc.latitude,
     loc.longitude,
+    tr.utm_source,
+    tr.utm_campaign,
+    tr.referrer_host,
+    tr.gclid,
+    tr.fbclid,
     JSON.stringify(di),
   ]
     .filter((x) => x != null && x !== "")
@@ -362,9 +396,73 @@ export function initAdminPage() {
   let allVisits = [];
   let pollTimer = null;
   let searchQuery = "";
+  let realtimeChannel = null;
+  let supabaseClient = null;
 
   function getToken() {
     return sessionStorage.getItem(TOKEN_KEY);
+  }
+
+  async function ensureSupabaseClient(token) {
+    if (cfg().realtimeEnabled === false) return null;
+    if (supabaseClient) return supabaseClient;
+    const { supabaseUrl, supabaseAnonKey } = cfg();
+    if (!supabaseUrl || !supabaseAnonKey) return null;
+    try {
+      const mod = await import(
+        "https://esm.sh/@supabase/supabase-js@2.49.1"
+      );
+      supabaseClient = mod.createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      return supabaseClient;
+    } catch {
+      return null;
+    }
+  }
+
+  function stopRealtime() {
+    if (realtimeChannel && supabaseClient) {
+      try {
+        supabaseClient.removeChannel(realtimeChannel);
+      } catch {
+        /* ignore */
+      }
+    }
+    realtimeChannel = null;
+  }
+
+  async function startRealtime(token) {
+    stopRealtime();
+    const client = await ensureSupabaseClient(token);
+    if (!client) {
+      if (opsRefreshLabel) opsRefreshLabel.textContent = `poll ${POLL_MS / 1000}s`;
+      return;
+    }
+
+    realtimeChannel = client
+      .channel("ops-visits")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "visits" },
+        (payload) => {
+          const row = payload.new;
+          if (!row?.id) return;
+          if (allVisits.some((v) => v.id === row.id)) return;
+          allVisits = [row, ...allVisits].slice(0, 200);
+          renderVisitList();
+          if (opsRefreshLabel) opsRefreshLabel.textContent = "realtime · hit";
+        }
+      )
+      .subscribe((status) => {
+        if (opsRefreshLabel) {
+          opsRefreshLabel.textContent =
+            status === "SUBSCRIBED"
+              ? "realtime on"
+              : `poll ${POLL_MS / 1000}s · ${status}`;
+        }
+      });
   }
 
   function tickClock() {
@@ -406,6 +504,7 @@ export function initAdminPage() {
     pollTimer = setInterval(() => {
       if (!getToken()) {
         stopPoll();
+        stopRealtime();
         return;
       }
       if (document.hidden) return;
@@ -516,7 +615,10 @@ export function initAdminPage() {
       allVisits = await fetchVisits(token);
       renderVisitList();
       startPoll();
-      if (opsRefreshLabel) opsRefreshLabel.textContent = `poll ${POLL_MS / 1000}s`;
+      await startRealtime(token);
+      if (opsRefreshLabel && !opsRefreshLabel.textContent.includes("realtime")) {
+        opsRefreshLabel.textContent = `poll ${POLL_MS / 1000}s`;
+      }
     } catch (e) {
       listEl.innerHTML = `<p class="status error">${e.message}</p>`;
     }
@@ -620,6 +722,8 @@ export function initAdminPage() {
 
   logoutBtn.addEventListener("click", () => {
     stopPoll();
+    stopRealtime();
+    supabaseClient = null;
     sessionStorage.removeItem(TOKEN_KEY);
     dashView.classList.add("hidden");
     loginView.classList.remove("hidden");

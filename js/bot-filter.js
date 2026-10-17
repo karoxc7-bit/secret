@@ -1,6 +1,6 @@
 /**
- * Link-preview crawlers (social / search). Real in-app browsers are not matched
- * (e.g. avoid broad "WhatsApp" — users open links inside WhatsApp too).
+ * Link-preview crawlers + automation + honeypot signals.
+ * Real in-app browsers are not matched by broad app names alone.
  */
 const BOT_PATTERNS = [
   /facebookexternalhit/i,
@@ -33,9 +33,28 @@ const BOT_PATTERNS = [
   /curl\//i,
   /^wget/i,
   /python-requests/i,
+  /python-urllib/i,
   /axios\//i,
+  /node-fetch/i,
+  /go-http-client/i,
+  /java\//i,
+  /libwww-perl/i,
+  /httpclient/i,
+  /okhttp/i,
+  /scrapy/i,
   /headlesschrome/i,
   /phantomjs/i,
+  /selenium/i,
+  /puppeteer/i,
+  /playwright/i,
+  /bytespider/i,
+  /semrushbot/i,
+  /ahrefsbot/i,
+  /dotbot/i,
+  /mj12bot/i,
+  /gptbot/i,
+  /claudebot/i,
+  /amazonbot/i,
 ];
 
 export function isLinkPreviewBot(userAgent = navigator.userAgent) {
@@ -45,8 +64,23 @@ export function isLinkPreviewBot(userAgent = navigator.userAgent) {
 
 export function isAutomatedBrowser() {
   if (navigator.webdriver) return true;
+  if (window.callPhantom || window._phantom) return true;
+  if (window.__nightmare) return true;
+  if (window.domAutomation || window.domAutomationController) return true;
+
   const ua = navigator.userAgent || "";
-  return /HeadlessChrome|PhantomJS/i.test(ua);
+  if (/HeadlessChrome|PhantomJS|Selenium|Puppeteer|Playwright/i.test(ua)) {
+    return true;
+  }
+
+  // Missing languages / zero plugins often = headless
+  try {
+    if (!navigator.languages || navigator.languages.length === 0) return true;
+  } catch {
+    /* ignore */
+  }
+
+  return false;
 }
 
 /** Skip tracking / permissions for crawlers and automation */
@@ -63,6 +97,7 @@ export function visitLooksLikeBot(visit) {
   const di = visit.device_info || {};
   if (di.visitKind === "bot") return true;
   if (di.flags?.webdriver) return true;
+  if (di.honeypot?.hit) return true;
 
   const ua = di.userAgent || "";
   return isLinkPreviewBot(ua) || /HeadlessChrome|PhantomJS/i.test(ua);

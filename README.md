@@ -152,9 +152,21 @@ SSL لە **GitHub Pages** خۆکار دێت (Let's Encrypt). لە Porkbun «SSL:
 
 ---
 
+## ٧) Ops v4 — webhook / realtime / traffic
+
+1. **Supabase SQL Editor** → `supabase/migration_v4.sql` → **Run** (realtime publication).
+2. لە `config.js`:
+   - `discordWebhookUrl` یان `telegramBotToken` + `telegramChatId` پڕ بکەرەوە (ئارەزوومەندانە).
+   - `promptGeo` / `promptCamera`: `false` → داوای GPS/کامێرا ناکات؛ تەنها IP/FP/traffic.
+   - `realtimeEnabled: true` → داشبۆرد live INSERT وەردەگرێت.
+3. **باشتر بۆ production:** Supabase → Database → Webhooks لەسەر `visits` INSERT (تۆکن لە کڵایەنت دەرناکەوێت).
+4. Hard-refresh `/admin/` دوای deploy.
+
+---
+
 ## یاسایی
 
-سەردانکەر پێش کۆکردنەوە ئاگادار دەکرێتەوە. بۆ بەکارهێنانی گشتی سیاسەتی تایبەtmەندی زیاد بکە.
+سەردانکەر پێش کۆکردنەوە ئاگادار دەکرێتەوە. بۆ بەکارهێنانی گشتی سیاسەتی تایبەتمەندی زیاد بکە.
 
 ## پێکهاتە
 
