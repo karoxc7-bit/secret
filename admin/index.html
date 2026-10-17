@@ -59,7 +59,16 @@
           <p id="redirect-updated" class="privacy-note"></p>
         </form>
 
-        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem">سەردانەکان</h2>
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem">نەخشە</h2>
+        <div class="card map-card">
+          <div id="visit-map" class="visit-map"></div>
+          <p id="map-stats" class="privacy-note" data-map-stats style="text-align:right"></p>
+        </div>
+
+        <div class="admin-header" style="margin-top: 1.5rem">
+          <h2 style="font-size: 1.1rem; margin: 0">سەردانەکان</h2>
+          <button type="button" class="btn-ghost btn-sm" id="btn-export-all">دەرکردنی هەموو (JSON)</button>
+        </div>
         <div class="visit-filters card" style="margin-bottom: 1rem; padding: 1rem 1.25rem">
           <label class="filter-check">
             <input type="checkbox" id="filter-hide-bots" checked />
