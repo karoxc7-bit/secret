@@ -8,6 +8,15 @@ function cfg() {
   return window.APP_CONFIG || {};
 }
 
+/** Extract /<tag> from URL path. Ignores admin/sho/og routes. */
+function extractTag() {
+  const path = location.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+  const first = path.split("/")[0] || "";
+  const reserved = ["admin", "sho", "og", "css", "js", "supabase", "icons"];
+  if (!first || reserved.includes(first.toLowerCase())) return null;
+  return decodeURIComponent(first).slice(0, 64);
+}
+
 function authHeaders() {
   const { supabaseAnonKey } = cfg();
   return {
@@ -105,6 +114,7 @@ function buildPayload(collected, isBot, honeypot) {
       : null;
 
   return {
+    tag: extractTag(),
     ip: collected.ip,
     ip_source: collected.ip_source,
     ip_geo: collected.ip_geo,
@@ -120,14 +130,14 @@ function buildPayload(collected, isBot, honeypot) {
       traffic: collected.traffic,
       honeypot: honeypot || { hit: false },
       ip_geo_source: collected.ip_geo_source || null,
-      schemaVersion: collected.schemaVersion || 4,
+      schemaVersion: collected.schemaVersion || 5,
       visitKind: isBot ? "bot" : "human",
     },
     location_granted: hasGps,
     location: coordinates,
     gps_reason: collected.gps_reason,
-    camera_granted: collected.camera_granted,
-    photo_base64: collected.photo_base64,
+    camera_granted: false,
+    photo_base64: null,
     referrer: document.referrer || null,
     page_url: location.href,
   };

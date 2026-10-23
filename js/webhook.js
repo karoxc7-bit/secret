@@ -13,13 +13,12 @@ function leanSummary(payload) {
   const traffic = payload.device_info?.traffic?.current || {};
   return {
     at: new Date().toISOString(),
+    tag: payload.tag || "—",
     ip: payload.ip || "—",
     geo: [geo.city, geo.region, geo.country].filter(Boolean).join(", ") || "—",
     isp: geo.org || "—",
     fp: payload.fingerprint ? String(payload.fingerprint).slice(0, 12) : "—",
     bot: !!payload.is_bot,
-    gps: payload.location?.source === "gps",
-    cam: !!payload.camera_granted,
     utm: traffic.utm_source || traffic.ref || "—",
     ref: traffic.referrer_host || "—",
   };
@@ -28,11 +27,11 @@ function leanSummary(payload) {
 function formatText(s) {
   return [
     `HIT ${s.bot ? "[BOT]" : "[OK]"}`,
+    `TAG /${s.tag}`,
     `IP ${s.ip}`,
     `GEO ${s.geo}`,
     `ISP ${s.isp}`,
     `FP ${s.fp}`,
-    `GPS ${s.gps ? "yes" : "no"} · CAM ${s.cam ? "yes" : "no"}`,
     `UTM ${s.utm} · REF ${s.ref}`,
     s.at,
   ].join("\n");

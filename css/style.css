@@ -531,6 +531,15 @@ body.visitor-blank {
   color: #a8b8d0;
 }
 
+.visit-tag {
+  background: rgba(0, 229, 168, 0.12);
+  color: var(--accent);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
 @media (max-width: 520px) {
   .visit-map {
     height: 300px;

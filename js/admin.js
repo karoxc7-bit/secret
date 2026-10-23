@@ -299,6 +299,7 @@ function visitSearchBlob(v) {
   const tr = di.traffic?.current || {};
   return [
     v.id,
+    v.tag,
     v.ip,
     v.fingerprint,
     v.ip_source,
@@ -346,8 +347,8 @@ function renderVisit(v, showBotBadge = false) {
     <article class="visit-item${isBot ? " visit-item--bot" : ""}${fresh ? " visit-item--fresh" : ""}" data-visit-id="${v.id}" data-is-bot="${isBot}">
       <time>${new Date(v.created_at).toLocaleString("ku")}${showBotBadge && isBot ? ' <span class="device-badge device-badge--bot">بۆت</span>' : ""}${fresh ? ' <span class="device-badge" style="background:#0b3a3a;color:#5eead4">LIVE</span>' : ""}</time>
       <div class="visit-item__id">${escapeHtml(shortId)}</div>
+      ${v.tag ? `<div class="meta"><strong>تاگ:</strong> <code dir="ltr" class="visit-tag">/${escapeHtml(v.tag)}</code></div>` : ""}
       <div class="meta"><strong>IP:</strong> ${escapeHtml(v.ip || "—")}${v.ip_source ? ` <span class="meta-dim">(${escapeHtml(v.ip_source)})</span>` : ""}</div>
-      <div class="meta"><strong>کامێرا:</strong> ${v.camera_granted ? "بەڵێ" : "نەخێر"}</div>
       ${renderLocation(v)}
       ${renderDeviceSummary(di)}
       ${fp}
@@ -387,7 +388,7 @@ export function initAdminPage() {
   const opsRefreshLabel = document.getElementById("ops-refresh-label");
   const kpiHits = document.getElementById("kpi-hits");
   const kpiGps = document.getElementById("kpi-gps");
-  const kpiCam = document.getElementById("kpi-cam");
+  const kpiTags = document.getElementById("kpi-tags");
   const kpiBots = document.getElementById("kpi-bots");
 
   const TOKEN_KEY = "admin_access_token";
@@ -473,10 +474,10 @@ export function initAdminPage() {
   function updateKpis(pool) {
     const bots = pool.filter((v) => visitLooksLikeBot(v)).length;
     const gps = pool.filter((v) => v.location?.source === "gps" || (v.location_granted && v.location)).length;
-    const cam = pool.filter((v) => v.camera_granted).length;
+    const uniqueTags = new Set(pool.filter((v) => v.tag).map((v) => v.tag)).size;
     if (kpiHits) kpiHits.textContent = String(pool.length);
     if (kpiGps) kpiGps.textContent = String(gps);
-    if (kpiCam) kpiCam.textContent = String(cam);
+    if (kpiTags) kpiTags.textContent = String(uniqueTags);
     if (kpiBots) kpiBots.textContent = String(bots);
   }
 

