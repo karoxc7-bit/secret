@@ -190,9 +190,11 @@ function renderDeviceSummary(di) {
   if (geo) {
     rows.push([
       "IP Geo",
-      [geo.city, geo.region, geo.country].filter(Boolean).join(", ") || "—",
+      [geo.district, geo.city, geo.region, geo.country].filter(Boolean).join(", ") || "—",
     ]);
+    if (geo.postal) rows.push(["پۆستکۆد", geo.postal]);
     if (geo.org) rows.push(["ISP", geo.org]);
+    if (geo.asn) rows.push(["ASN", geo.asn]);
     if (geo.latitude != null && geo.longitude != null) {
       rows.push(["IP Coords", `${geo.latitude}, ${geo.longitude}`]);
     }
